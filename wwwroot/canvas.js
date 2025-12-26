@@ -1,6 +1,7 @@
 let _state = {
     bgImg: null,          // HTMLImageElement
     bgObjectUrl: null,    // object URL for background image
+    fontFamily: null,
     customFontFamily: null,
     separatorImg: null,
 };
@@ -17,6 +18,26 @@ function clamp01(v) {
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
+}
+
+/**
+ * wwwroot/fonts に同梱したフォントを読み込む
+ * @param {string} family フォント名（Canvasで使う名前）
+ * @param {string} url    フォントファイルのURL
+ * @param {number} weight フォントウェイト（400,700など）
+ */
+export async function loadBundledFont(family, url, weight = 400) {
+    const font = new FontFace(
+        family,
+        `url(${url})`,
+        { weight: String(weight), style: "normal" }
+    );
+
+    await font.load();
+    document.fonts.add(font);
+
+    _state.fontFamily = family;
+    _state.fontLoaded = true;
 }
 
 /**
@@ -183,7 +204,7 @@ export function render(canvasId, options) {
     // ---- Font selection ----
     const family = (options.useCustomFont && _state.customFontFamily)
         ? _state.customFontFamily
-        : (options.fallbackFont || "sans-serif");
+        : (_stata.fontFamily || "sans-serif");
 
     // ---- Shadow ----
     const withShadow = !!options.withShadow;
