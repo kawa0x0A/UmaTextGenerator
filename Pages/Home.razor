@@ -230,7 +230,7 @@
 
         _umaCanvas = await JS.InvokeAsync<IJSObjectReference>("import", "./canvas.js");
 
-        await _umaCanvas.InvokeVoidAsync("loadBundledFont", "UMAMUSUME-RodinWanpaku Pro", "/dynamic01.otf", 400);
+        await _umaCanvas.InvokeVoidAsync("loadBundledFont", "UMAMUSUME-RodinWanpaku Pro", "./dynamic01.otf", 400);
 
         await _umaCanvas.InvokeVoidAsync("loadSeparatorImage", "./utx_frm_messagewindow_nameline_00_sl.png");
 
