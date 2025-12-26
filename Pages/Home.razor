@@ -1,0 +1,344 @@
+@page "/"
+@inject IJSRuntime JS
+
+<div class="min-h-dvh bg-zinc-50 text-zinc-900">
+
+    <!-- ================= Header ================= -->
+    <header class="sticky top-0 z-20 border-b border-black/10 bg-white/80 backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <div class="grid h-9 w-9 place-items-center rounded-2xl bg-white/10">
+                    <span class="text-xs font-bold">UMA</span>
+                </div>
+                <div>
+                    <div class="text-sm font-semibold leading-tight">UMA TEXT GENERATOR</div>
+                    <div class="text-xs leading-tight text-zinc-400">Web Edition</div>
+                </div>
+            </div>
+
+            <button @onclick="SavePng" disabled="@SavePngDisabled" class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition @(HasImage ? "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 active:bg-emerald-600" : "bg-zinc-700 text-zinc-400 cursor-not-allowed")">
+                画像を保存
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= Main ================= -->
+    <main class="mx-auto max-w-6xl px-4 py-4">
+
+        <!-- PC: 横並び / Mobile: 縦並び -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[420px_1fr]">
+
+            <!-- ========== Settings Panel ========== -->
+            <section class="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+
+                <h2 class="mb-3 text-sm font-semibold">設定</h2>
+
+                <div class="space-y-4">
+
+                    <!-- Background Image -->
+                    <div class="space-y-2">
+                        <div class="text-xs font-medium text-zinc-500">背景画像</div>
+                        <label class="block cursor-pointer rounded-xl border border-white/10 px-3 py-2">
+                            <InputFile OnChange="OnImageSelected"
+                                       accept="image/*"
+                                       class="tbg-white block w-full px-3 py-2 text-xs outline-none file:mr-3
+                                file:rounded-lg file:border-0 file:bg-white/10
+                                file:px-3 file:py-1.5 file:text-xs
+                                file:font-semibold" />
+                        </label>
+                        <div class="text-[11px] text-zinc-500">
+                            ※ 出力は元画像の解像度のままです
+                        </div>
+                    </div>
+
+                    <!-- Character Name -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-medium text-zinc-500">キャラクター名</label>
+                        <input class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                               @bind="CharacterName" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                    </div>
+
+                    <!-- Body Text -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-medium text-zinc-500">本文</label>
+                        <textarea class="min-h-28 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                  @bind="BodyText" @bind:event="oninput" @bind:after="OnParamsChanged"></textarea>
+                    </div>
+
+                    <!-- Font Size -->
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-xs text-zinc-500">名前フォントサイズ: @NameFontSize</div>
+                            <input type="range" min="10" max="120"
+                                   class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                   @bind="NameFontSize" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                        </div>
+
+                        <div>
+                            <div class="text-xs text-zinc-500">本文フォントサイズ: @BodyFontSize</div>
+                            <input type="range" min="10" max="120"
+                                   class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                   @bind="BodyFontSize" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                        </div>
+                    </div>
+
+                    <!-- Simple Toggles -->
+                    <div class="space-y-2 rounded-xl border border-black/10 bg-white p-3 px-3 py-2 text-sm outline-none focus:border-emerald-500/60">
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" class="h-4 w-4 border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60" @bind="ShowName" @bind:after="OnParamsChanged" />
+                            <span>名前を表示</span>
+                        </label>
+
+                        <label class="flex items-center gap-2 pl-6 text-sm">
+                            <input type="checkbox" class="h-4 w-4 border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60" @bind="ShowLine" @bind:after="OnParamsChanged" />
+                            <span>ラインを表示</span>
+                        </label>
+                    </div>
+
+                    <!-- ========== Advanced Settings (Collapsible) ========== -->
+                    <details class="group rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60">
+                        <summary class="flex cursor-pointer list-none items-center justify-between px-4 py-3
+                     text-sm font-semibold transition hover:bg-white/5">
+                            <span>
+                                詳細設定
+                                <span class="ml-1 text-xs font-normal text-zinc-500">
+                                    （フォント・影・黒帯）
+                                </span>
+                            </span>
+
+                            <svg class="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-180"
+                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </summary>
+
+                        <div class="space-y-4 px-4 pb-4 pt-3">
+
+                            <!-- Font -->
+                            <div class="space-y-2">
+                                <div class="text-xs font-medium text-zinc-500">フォント</div>
+                                <label class="block cursor-pointer rounded-xl border border-white/10 px-3 py-2">
+                                    <InputFile OnChange="OnFontSelected"
+                                               accept=".ttf,.otf,font/ttf,font/otf"
+                                               class="tbg-white block w-full px-3 py-2 text-xs outline-none file:mr-3
+                                file:rounded-lg file:border-0 file:bg-white/10
+                                file:px-3 file:py-1.5 file:text-xs
+                                file:font-semibold" />
+                                </label>
+
+                                <button @onclick="ClearFont"
+                                        class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10">
+                                    フォント解除
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="text-xs font-medium text-zinc-500">位置（0〜1）</div>
+
+                                <div>
+                                    <div class="text-xs text-zinc-500">名前位置: (@NameX01.ToString("0.00"), @NameY01.ToString("0.00"))</div>
+                                    <input type="range" min="0" max="1" step="0.01"
+                                           class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                           @bind="NameX01" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                                    <input type="range" min="0" max="1" step="0.01"
+                                           class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                           @bind="NameY01" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                                </div>
+
+                                <div>
+                                    <div class="text-xs text-zinc-500">本文位置: (@BodyX01.ToString("0.00"), @BodyY01.ToString("0.00"))</div>
+                                    <input type="range" min="0" max="1" step="0.01"
+                                           class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                           @bind="BodyX01" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                                    <input type="range" min="0" max="1" step="0.01"
+                                           class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                           @bind="BodyY01" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                                </div>
+                            </div>
+
+                            <!-- Shadow -->
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" class="h-4 w-4 border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60" @bind="WithShadow" @bind:after="OnParamsChanged" />
+                                    <span>文字に影を付ける</span>
+                                </label>
+
+                                <div class="pl-6">
+                                    <div class="ttext-zinc-500 text-xs">影オフセット(px): @ShadowOffsetPx</div>
+                                    <input type="range" min="0" max="12"
+                                           class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500/60"
+                                           @bind="ShadowOffsetPx" @bind:event="oninput" @bind:after="OnParamsChanged" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </details>
+
+                </div>
+            </section>
+
+            <!-- ========== Preview ========== -->
+            <section class="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-zinc-500">プレビュー</h2>
+                </div>
+
+                <div class="rounded-2xl border border-black/10 bg-zinc-100">
+                    <canvas id="@CanvasId"
+                            class="mx-auto block h-auto max-w-full lg:max-w-[720px]"></canvas>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+@code {
+    private const string CanvasId = "umaCanvas";
+
+    private bool HasImage { get; set; } = false;
+    private string SavePngDisabled { get { return HasImage ? "false" : "true"; } }
+
+    private string CharacterName { get; set; } = "名前";
+    private string BodyText { get; set; } = "本文テキスト";
+
+    private int NameFontSize { get; set; } = 70;
+    private int BodyFontSize { get; set; } = 65;
+
+    private bool ShowName { get; set; } = true;
+    private bool ShowLine { get; set; } = true;
+
+    private double NameX01 { get; set; } = 0.35;
+    private double NameY01 { get; set; } = 0.75;
+    private double BodyX01 { get; set; } = 0.25;
+    private double BodyY01 { get; set; } = 0.85;
+
+    private bool WithShadow { get; set; } = true;
+    private int ShadowOffsetPx { get; set; } = 2;
+
+    private bool UseCustomFont { get; set; } = true;
+
+    private IJSObjectReference? _umaCanvas;
+
+    private CancellationTokenSource? _renderDebounceCts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _umaCanvas = await JS.InvokeAsync<IJSObjectReference>("import", "./canvas.js");
+
+        await _umaCanvas.InvokeVoidAsync("loadSeparatorImage", "./utx_frm_messagewindow_nameline_00_sl.png");
+
+        await RenderAsync();
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        if (_umaCanvas is null) return;
+
+        var file = e.File;
+        // 大きすぎる画像もあるので上限を持たせる（必要なら調整）
+        using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        await _umaCanvas.InvokeVoidAsync("setBackgroundImageFromBytes", CanvasId, ms.ToArray());
+
+        HasImage = true;
+
+        await RenderAsync();
+    }
+
+    private async Task OnFontSelected(InputFileChangeEventArgs e)
+    {
+        if (_umaCanvas is null) return;
+
+        var file = e.File;
+        using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        // familyName は固定でOK（差し替え）
+        await _umaCanvas.InvokeVoidAsync("loadFontFromBytes", ms.ToArray(), "UserFont");
+        UseCustomFont = true;
+        await RenderAsync();
+    }
+
+    private async Task ClearFont()
+    {
+        if (_umaCanvas is null) return;
+        await _umaCanvas.InvokeVoidAsync("clearCustomFont");
+        UseCustomFont = false;
+        await RenderAsync();
+    }
+
+    private async Task OnParamsChanged()
+    {
+        if (_umaCanvas is null || !HasImage)
+            return;
+
+        _renderDebounceCts?.Cancel();
+        var cts = _renderDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(50, cts.Token);
+            await RenderAsync();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private async Task RenderAsync()
+    {
+        if (_umaCanvas is null) return;
+
+        var opts = new
+        {
+            characterName = CharacterName,
+            bodyText = BodyText,
+            nameFontSize = NameFontSize,
+            bodyFontSize = BodyFontSize,
+            showName = ShowName,
+            showLine = ShowLine,
+            nameX01 = NameX01,
+            nameY01 = NameY01,
+            bodyX01 = BodyX01,
+            bodyY01 = BodyY01,
+            withShadow = WithShadow,
+            shadowOffsetPx = ShadowOffsetPx,
+            useCustomFont = UseCustomFont,
+            // スマホで無難なフォールバック
+            //fallbackFont = "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, \"Noto Sans JP\", sans-serif"
+            fallbackFont = "UMAMUSUME-RodinWanpaku Pro"
+        };
+
+        await _umaCanvas.InvokeVoidAsync("render", CanvasId, opts);
+    }
+
+    private async Task SavePng()
+    {
+        if (_umaCanvas is null) return;
+
+        // 保存前に最新描画
+        await RenderAsync();
+
+        var safeName = string.IsNullOrWhiteSpace(CharacterName) ? "image" : CharacterName.Trim();
+        await _umaCanvas.InvokeVoidAsync("downloadPng", CanvasId, $"{safeName}.png");
+    }
+
+    // 変更時に即プレビュー更新したいので、各bindでoninputを使ってる。
+    // ただし bind更新のたびにRenderAsyncを呼ぶには工夫がいるため、簡易的にタイマー or setterで呼ぶ方法もあり。
+    // ここでは手軽さ重視で、入力後に画面をタップしたタイミングでも再描画されるので、必要なら後述の改善案を使う。
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters);
+        // パラメータ更新後（=バインド変更後）に描画したい場合：
+        if (_umaCanvas is not null)
+            await RenderAsync();
+    }
+}
