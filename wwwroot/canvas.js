@@ -204,7 +204,7 @@ export function render(canvasId, options) {
     // ---- Font selection ----
     const family = (options.useCustomFont && _state.customFontFamily)
         ? _state.customFontFamily
-        : (_stata.fontFamily || "sans-serif");
+        : (_state.fontFamily || "sans-serif");
 
     // ---- Shadow ----
     const withShadow = !!options.withShadow;
